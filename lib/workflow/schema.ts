@@ -71,14 +71,81 @@ const CallbackConfigSchema = z.object({
     method: z.enum(['GET', 'POST', 'PUT']).default('POST'),
 });
 
+// TM Schema Validate Config - Full validation configuration
 const TMSchemaConfigSchema = z.object({
-    requiredFields: z.array(z.string()),
+    requiredFields: z.array(z.string()).default([
+        'txn_id', 'customer_id', 'timestamp', 'amount', 'currency', 'direction', 'channel'
+    ]),
+    allowedCurrencies: z.array(z.string()).default(['USD', 'EUR', 'GBP', 'INR', 'JPY', 'AED', 'SGD', 'CHF']),
+    allowedChannels: z.array(z.string()).default(['UPI', 'CARD', 'WIRE', 'WALLET', 'ACH', 'SWIFT', 'RTGS']),
+    allowedDirections: z.array(z.string()).default(['IN', 'OUT']),
+    maxFutureTimestampDriftMs: z.number().default(300000), // 5 minutes
+    mode: z.enum(['strict', 'lenient']).default('strict'),
+    enrichDefaults: z.boolean().default(true),
+});
+
+// TM FX Normalize Config - Currency normalization settings
+const TMFXConfigSchema = z.object({
+    baseCurrency: z.string().default('USD'),
+    fxRates: z.record(z.string(), z.number()).optional(), // Custom rates override
+    roundingDecimals: z.number().default(2),
+    missingRateBehavior: z.enum(['block', 'warn', 'fallback']).default('warn'),
+    fallbackRate: z.number().default(1),
+});
+
+// TM Deduplicate Config - Deduplication strategy
+const TMDeduplicateConfigSchema = z.object({
+    keyStrategy: z.enum(['txn_id', 'hash', 'both']).default('txn_id'),
+    hashFields: z.array(z.string()).default(['customer_id', 'amount', 'timestamp', 'counterparty_id']),
+    ttlDays: z.number().default(30),
+    duplicateBehavior: z.enum(['drop', 'log', 'alert']).default('drop'),
+});
+
+// TM Scenario Rule Config - Comprehensive rule configuration
+const TMScenarioRuleSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    type: z.enum(['HIGH_VALUE', 'HIGH_FREQUENCY', 'VELOCITY', 'STRUCTURING', 'HIGH_RISK_CORRIDOR', 'UNUSUAL_PATTERN']),
+    enabled: z.boolean().default(true),
+    amountThreshold: z.number().optional(),
+    countThreshold: z.number().optional(),
+    velocityThreshold: z.number().optional(),
+    structuringBand: z.number().optional(), // epsilon for structuring detection
+    riskCountries: z.array(z.string()).optional(),
+    riskMerchantCategories: z.array(z.string()).optional(),
+    windowMinutes: z.number().default(60),
+    severity: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).default('MEDIUM'),
+    requireAllConditions: z.boolean().default(false),
 });
 
 const TMScenarioConfigSchema = z.object({
-    windowMinutes: z.number(),
-    amountThreshold: z.number().optional(),
-    velocityThreshold: z.number().optional(),
+    windowMinutes: z.number().default(60),
+    rules: z.array(TMScenarioRuleSchema).optional(),
+    minimumTriggers: z.number().default(1),
+    cooldownMinutes: z.number().optional(),
+    // Default rules will be applied in the handler if no rules are configured
+});
+
+// TM Create Alert Config - Alert creation and routing
+const TMCreateAlertConfigSchema = z.object({
+    groupingWindowMinutes: z.number().default(30),
+    severityPriorityMap: z.record(z.string(), z.number()).default({
+        'CRITICAL': 1,
+        'HIGH': 2,
+        'MEDIUM': 3,
+        'LOW': 4,
+    }),
+    routingRules: z.array(z.object({
+        condition: z.string(),
+        queue: z.string(),
+    })).optional(),
+    slaMinutesByPriority: z.record(z.string(), z.number()).default({
+        '1': 60,      // 1 hour for P1
+        '2': 240,     // 4 hours for P2
+        '3': 1440,    // 24 hours for P3
+        '4': 4320,    // 72 hours for P4
+    }),
+    webhookUrl: z.string().url().optional(),
 });
 
 // Generic Node Schema
@@ -95,7 +162,10 @@ export const WorkflowNodeSchema = z.object({
             RiskGateConfigSchema,
             CallbackConfigSchema,
             TMSchemaConfigSchema,
+            TMFXConfigSchema,
+            TMDeduplicateConfigSchema,
             TMScenarioConfigSchema,
+            TMCreateAlertConfigSchema,
             z.record(z.string(), z.any()), // Fallback for nodes with no specific config
         ]).optional(),
     }),
