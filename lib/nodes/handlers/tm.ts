@@ -61,6 +61,29 @@ const DEFAULT_FX_RATES: FXRates = {
     AUD: 0.65,
 };
 
+interface FrankfurterResponse {
+    amount: number;
+    base: string;
+    date: string;
+    rates: Record<string, number>;
+}
+
+const fetchRealTimeFXRates = async (): Promise<Record<string, number> | null> => {
+    try {
+        const response = await fetch('https://api.frankfurter.app/latest?from=USD');
+        if (!response.ok) {
+            console.warn(`FX API fetch failed: ${response.statusText}`);
+            return null;
+        }
+        const data = await response.json() as FrankfurterResponse;
+        // Include base USD in the map
+        return { ...data.rates, USD: 1 };
+    } catch (error) {
+        console.warn('FX API fetch error:', error);
+        return null;
+    }
+};
+
 // Default scenario rules when none configured
 const DEFAULT_SCENARIO_RULES: ScenarioRule[] = [
     {
@@ -319,7 +342,26 @@ export const handleTMFXNormalize: NodeHandler = async (node, context) => {
         ...node.config
     };
 
-    const rates = { ...DEFAULT_FX_RATES, ...config.fxRates };
+    // Fetch real-time rates
+    let baseRates = { ...DEFAULT_FX_RATES };
+    const apiRates = await fetchRealTimeFXRates();
+
+    if (apiRates) {
+        const usdToBase = apiRates[config.baseCurrency];
+        // Only use API rates if we can resolve the target base currency
+        if (typeof usdToBase === 'number' && usdToBase > 0) {
+            const dynamicRates: FXRates = {};
+            // Convert everything: Rate(C -> Base) = Rate(USD -> Base) / Rate(USD -> C)
+            for (const [currency, usdToCurr] of Object.entries(apiRates)) {
+                if (typeof usdToCurr === 'number' && usdToCurr !== 0) {
+                    dynamicRates[currency] = usdToBase / usdToCurr;
+                }
+            }
+            baseRates = dynamicRates;
+        }
+    }
+
+    const rates = { ...baseRates, ...config.fxRates };
     const transactions: Transaction[] = context.data.tm?.validTransactions ||
         context.data.tm?.uniqueTransactions ||
         context.input.transactions || [];

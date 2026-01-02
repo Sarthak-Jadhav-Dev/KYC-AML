@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     // Create Execution Record
     const execution = await Execution.create({
-        tenantId: workflow.tenantId,
+        tenantId: workflow.tenantId || 'demo-tenant', // Ensure tenantId is propagated
         workflowId: workflow._id.toString(),
         status: 'RUNNING',
         input: input || {},
