@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import { Execution } from '@/lib/models/definitions';
@@ -9,7 +8,9 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const workflowId = searchParams.get('workflowId');
 
-    const query: any = { tenantId: 'demo-tenant' };
+    // Build query - show all executions (no tenant filtering for now)
+    const query: any = {};
+
     if (workflowId) {
         query.workflowId = workflowId;
     }

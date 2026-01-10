@@ -24,7 +24,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import { MoreVertical, Pencil, Trash2, Play, Plus } from 'lucide-react';
+import { MoreVertical, Pencil, Trash2, Play, Plus, Share2, Users } from 'lucide-react';
+import { ShareDialog } from '@/components/workflow/ShareDialog';
 
 interface Workflow {
   _id: string;
@@ -32,6 +33,8 @@ interface Workflow {
   status: 'DRAFT' | 'DEPLOYED';
   version: number;
   updatedAt: string;
+  accessType?: 'owner' | 'shared';
+  role?: 'viewer' | 'editor' | 'admin';
 }
 
 export default function WorkflowsPage() {
@@ -49,6 +52,10 @@ export default function WorkflowsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingWorkflow, setDeletingWorkflow] = useState<Workflow | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Share dialog state
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [sharingWorkflow, setSharingWorkflow] = useState<Workflow | null>(null);
 
   const fetchWorkflows = () => {
     setIsLoading(true);
@@ -121,6 +128,12 @@ export default function WorkflowsPage() {
     setDeleteDialogOpen(true);
   };
 
+  // Share workflow
+  const openShareDialog = (workflow: Workflow) => {
+    setSharingWorkflow(workflow);
+    setShareDialogOpen(true);
+  };
+
   const handleDeleteConfirm = async () => {
     if (!deletingWorkflow) return;
 
@@ -183,6 +196,12 @@ export default function WorkflowsPage() {
                     <Badge variant={wf.status === 'DEPLOYED' ? 'default' : 'secondary'}>
                       {wf.status}
                     </Badge>
+                    {wf.accessType === 'shared' && (
+                      <Badge variant="outline" className="gap-1">
+                        <Users className="h-3 w-3" />
+                        {wf.role}
+                      </Badge>
+                    )}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -190,6 +209,10 @@ export default function WorkflowsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openShareDialog(wf)} className="gap-2">
+                          <Share2 className="h-4 w-4" />
+                          Share
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => openEditDialog(wf)} className="gap-2">
                           <Pencil className="h-4 w-4" />
                           Rename
@@ -201,13 +224,15 @@ export default function WorkflowsPage() {
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => openDeleteDialog(wf)}
-                          className="gap-2 text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
+                        {wf.accessType !== 'shared' && (
+                          <DropdownMenuItem
+                            onClick={() => openDeleteDialog(wf)}
+                            className="gap-2 text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -295,6 +320,15 @@ export default function WorkflowsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Share Dialog */}
+      {sharingWorkflow && (
+        <ShareDialog
+          workflowId={sharingWorkflow._id}
+          workflowName={sharingWorkflow.name}
+          open={shareDialogOpen}
+          onOpenChange={setShareDialogOpen}
+        />
+      )}
     </div>
   );
 }

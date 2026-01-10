@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Menu, X, LogOut, User, Workflow, PlayCircle } from 'lucide-react';
+import { Menu, X, LogOut, User, Workflow, PlayCircle, Users } from 'lucide-react';
 
 interface UserData {
     id: string;
@@ -41,6 +41,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const tabs = [
         { name: 'Workflows', href: '/dashboard/workflows', icon: Workflow },
         { name: 'Executions', href: '/dashboard/executions', icon: PlayCircle },
+        { name: 'Team', href: '/dashboard/team', icon: Users },
     ];
 
     const isActiveTab = (href: string) => pathname?.startsWith(href);

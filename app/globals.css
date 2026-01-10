@@ -123,3 +123,78 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Workflow Canvas Styles */
+.workflow-canvas {
+  background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%) !important;
+}
+
+.workflow-canvas .react-flow__edge-path {
+  stroke-width: 3px !important;
+}
+
+.workflow-canvas .react-flow__edge.animated path {
+  stroke-dasharray: 5;
+  animation: dash 0.5s linear infinite;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+
+/* Custom Controls Styling */
+.workflow-controls {
+  background: rgba(26, 26, 46, 0.9) !important;
+  border: 1px solid rgba(139, 92, 246, 0.3) !important;
+  border-radius: 8px !important;
+}
+
+.workflow-controls button {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.2) !important;
+  color: #a78bfa !important;
+}
+
+.workflow-controls button:hover {
+  background: rgba(139, 92, 246, 0.2) !important;
+}
+
+.workflow-controls button:last-child {
+  border-bottom: none !important;
+}
+
+/* MiniMap Styling */
+.react-flow__minimap {
+  background: #0f0f23 !important;
+  border: 1px solid rgba(139, 92, 246, 0.3) !important;
+  border-radius: 8px !important;
+}
+
+/* Attribution hide */
+.react-flow__attribution {
+  display: none !important;
+}
+
+/* Handle connection line */
+.react-flow__connection-line {
+  stroke: #8b5cf6 !important;
+  stroke-width: 3px !important;
+}
+
+/* Selection box */
+.react-flow__selection {
+  background: rgba(139, 92, 246, 0.1) !important;
+  border: 1px dashed #8b5cf6 !important;
+}
+
+/* Edge styling */
+.react-flow__edge-path {
+  stroke: url(#edge-gradient) !important;
+}
+
+/* Panel styling for node palette */
+.react-flow__panel {
+  background: rgba(26, 26, 46, 0.95) !important;
+}

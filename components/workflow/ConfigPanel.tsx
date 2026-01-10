@@ -7,13 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea'; // Need to add if not present, or use Input
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Trash2 } from 'lucide-react';
 
 interface ConfigPanelProps {
     selectedNode: Node | null;
     onUpdate: (id: string, data: any) => void;
+    onDelete?: (id: string) => void;
 }
 
-export function ConfigPanel({ selectedNode, onUpdate }: ConfigPanelProps) {
+export function ConfigPanel({ selectedNode, onUpdate, onDelete }: ConfigPanelProps) {
     const [config, setConfig] = useState<any>({});
     const [nodeLabel, setNodeLabel] = useState("");
 
@@ -33,6 +35,12 @@ export function ConfigPanel({ selectedNode, onUpdate }: ConfigPanelProps) {
         }
     };
 
+    const handleDelete = () => {
+        if (selectedNode && onDelete) {
+            onDelete(selectedNode.id);
+        }
+    };
+
     if (!selectedNode) {
         return (
             <div className="p-6 text-center text-muted-foreground text-sm">
@@ -43,7 +51,20 @@ export function ConfigPanel({ selectedNode, onUpdate }: ConfigPanelProps) {
 
     return (
         <div className="h-full flex flex-col bg-background border-l">
-            <div className="p-4 border-b font-semibold text-sm">Configuration</div>
+            <div className="p-4 border-b font-semibold text-sm flex items-center justify-between">
+                <span>Configuration</span>
+                {onDelete && (
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleDelete}
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        title="Delete Node"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                )}
+            </div>
             <ScrollArea className="flex-1 p-4">
                 <div className="space-y-4">
                     <div className="space-y-2">
@@ -85,8 +106,18 @@ export function ConfigPanel({ selectedNode, onUpdate }: ConfigPanelProps) {
                     </div>
                 </div>
             </ScrollArea>
-            <div className="p-4 border-t bg-muted/10">
+            <div className="p-4 border-t bg-muted/10 space-y-2">
                 <Button onClick={handleSave} className="w-full">Update Node</Button>
+                {onDelete && (
+                    <Button
+                        variant="destructive"
+                        onClick={handleDelete}
+                        className="w-full"
+                    >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Node
+                    </Button>
+                )}
             </div>
         </div>
     );

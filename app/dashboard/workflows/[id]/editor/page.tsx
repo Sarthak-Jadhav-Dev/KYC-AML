@@ -13,7 +13,9 @@ import ReactFlow, {
   Edge,
   Node,
   ReactFlowInstance,
-  MiniMap
+  MiniMap,
+  BackgroundVariant,
+  MarkerType
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -140,6 +142,44 @@ export default function EditorPage() {
     toast.success("Node updated");
   }, [setNodes]);
 
+  // Handle node deletion
+  const onNodeDelete = useCallback((nodeId: string) => {
+    setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+    setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
+    setSelectedNode(null);
+    toast.success("Node deleted");
+  }, [setNodes, setEdges]);
+
+  // Handle keyboard delete
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.key === 'Delete' || event.key === 'Backspace') && selectedNode) {
+        // Don't delete if we're in an input/textarea
+        const target = event.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+
+        event.preventDefault();
+        onNodeDelete(selectedNode.id);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selectedNode, onNodeDelete]);
+
+  // Edge styling for thick blue-purple gradient
+  const defaultEdgeOptions = {
+    style: {
+      stroke: 'url(#edge-gradient)',
+      strokeWidth: 3,
+    },
+    animated: true,
+    markerEnd: {
+      type: MarkerType.ArrowClosed,
+      color: '#8B5CF6',
+    },
+  };
+
   const handleSave = async () => {
     const graphJson = reactFlowInstance?.toObject();
     try {
@@ -257,11 +297,40 @@ export default function EditorPage() {
                   onDragOver={onDragOver}
                   onNodeClick={onNodeClick}
                   nodeTypes={nodeTypes}
+                  defaultEdgeOptions={defaultEdgeOptions}
                   fitView
+                  className="workflow-canvas"
                 >
-                  <Background />
-                  <Controls />
-                  <MiniMap />
+                  {/* SVG Gradient definitions for edges */}
+                  <svg style={{ position: 'absolute', width: 0, height: 0 }}>
+                    <defs>
+                      <linearGradient id="edge-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="#6366F1" />
+                        <stop offset="50%" stopColor="#8B5CF6" />
+                        <stop offset="100%" stopColor="#A855F7" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <Background
+                    variant={BackgroundVariant.Dots}
+                    gap={20}
+                    size={1}
+                    color="#374151"
+                  />
+                  <Controls className="workflow-controls" />
+                  <MiniMap
+                    nodeColor={(node) => {
+                      const type = node.data?.type || '';
+                      if (type.startsWith('KYC_')) return '#8B5CF6';
+                      if (type.startsWith('AML_')) return '#F59E0B';
+                      if (type.startsWith('RISK_')) return '#3B82F6';
+                      if (type.startsWith('DECISION_')) return '#10B981';
+                      if (type.startsWith('TM_')) return '#06B6D4';
+                      return '#6366F1';
+                    }}
+                    maskColor="rgba(0, 0, 0, 0.8)"
+                    style={{ backgroundColor: '#0f0f23' }}
+                  />
                 </ReactFlow>
               </div>
             </ResizablePanel>
@@ -269,7 +338,7 @@ export default function EditorPage() {
             <ResizableHandle />
 
             <ResizablePanel defaultSize={20} minSize={20}>
-              <ConfigPanel selectedNode={selectedNode} onUpdate={onNodeUpdate} />
+              <ConfigPanel selectedNode={selectedNode} onUpdate={onNodeUpdate} onDelete={onNodeDelete} />
             </ResizablePanel>
           </ResizablePanelGroup>
         </ReactFlowProvider>

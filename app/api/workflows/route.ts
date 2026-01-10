@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import { Workflow } from '@/lib/models/definitions';
+import { Collaborator } from '@/lib/models/Collaborator';
 import { verifyToken, getTokenFromHeaders } from '@/lib/auth/auth';
 
 // Helper to get current user ID from request
@@ -17,13 +18,40 @@ export async function GET(req: NextRequest) {
     await dbConnect();
     const userId = await getUserId(req);
 
-    // If authenticated, get user's workflows, otherwise get demo tenant workflows
-    const query = userId
-        ? { userId }
-        : { tenantId: 'demo-tenant' };
+    if (!userId) {
+        // If not authenticated, get demo tenant workflows
+        const workflows = await Workflow.find({ tenantId: 'demo-tenant' }).sort({ updatedAt: -1 });
+        return NextResponse.json(workflows);
+    }
 
-    const workflows = await Workflow.find(query).sort({ updatedAt: -1 });
-    return NextResponse.json(workflows);
+    // Get workflows the user owns
+    const ownedWorkflows = await Workflow.find({ userId }).sort({ updatedAt: -1 });
+
+    // Get workflow IDs where user is a collaborator
+    const collaborations = await Collaborator.find({ userId, status: 'accepted' });
+    const sharedWorkflowIds = collaborations.map(c => c.workflowId);
+
+    // Get shared workflows
+    const sharedWorkflows = await Workflow.find({ _id: { $in: sharedWorkflowIds } }).sort({ updatedAt: -1 });
+
+    // Mark workflows with their access type
+    const ownedWithType = ownedWorkflows.map(w => ({
+        ...w.toObject(),
+        accessType: 'owner' as const,
+    }));
+
+    const sharedWithType = sharedWorkflows.map(w => {
+        const collab = collaborations.find(c => c.workflowId === w._id.toString());
+        return {
+            ...w.toObject(),
+            accessType: 'shared' as const,
+            role: collab?.role || 'viewer',
+        };
+    });
+
+    // Combine and return all workflows
+    const allWorkflows = [...ownedWithType, ...sharedWithType];
+    return NextResponse.json(allWorkflows);
 }
 
 // POST /api/workflows
