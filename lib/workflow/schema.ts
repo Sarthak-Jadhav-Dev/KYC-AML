@@ -43,8 +43,12 @@ const OCRConfigSchema = z.object({
 });
 
 const AMLConfigSchema = z.object({
-    provider: z.string().default('mock'),
-    matchThreshold: z.number().min(0).max(1).default(0.8),
+    provider: z.enum(['opensanctions', 'mock']).default('opensanctions'),
+    apiKey: z.string().optional(),
+    matchThreshold: z.number().min(0).max(100).default(80),
+    useFuzzyMatching: z.boolean().default(true),
+    enableDemoFallback: z.boolean().default(true),
+    datasets: z.array(z.string()).optional(), // e.g., ['crime', 'peps', 'sanctions']
 });
 
 const RiskCalculatorConfigSchema = z.object({

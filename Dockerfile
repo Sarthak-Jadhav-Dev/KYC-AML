@@ -22,9 +22,17 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Build-time arguments (passed via docker build --build-arg)
+ARG MONGODB_URI
+ARG JWT_SECRET
+ARG NEXTAUTH_SECRET
+
 # Set environment variables for build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+ENV MONGODB_URI=${MONGODB_URI}
+ENV JWT_SECRET=${JWT_SECRET}
+ENV NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
 
 # Build the application
 RUN npm run build
